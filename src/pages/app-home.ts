@@ -1,79 +1,185 @@
 import { LitElement, css, html } from 'lit';
 import { property, customElement } from 'lit/decorators.js';
 import { resolveRouterPath } from '../router';
-
-import '@shoelace-style/shoelace/dist/components/card/card.js';
-import '@shoelace-style/shoelace/dist/components/button/button.js';
-
 import { styles } from '../styles/shared-styles';
 
 @customElement('app-home')
 export class AppHome extends LitElement {
-
-  // For more information on using properties and state in lit
-  // check out this link https://lit.dev/docs/components/properties/
-  @property() message = 'Welcome!';
+  @property() message = '2048 game remake by Nick Surgent';
+  @property({ type: Array }) board: number[][] = Array.from({ length: 4 }, () => Array(4).fill(0));
 
   static get styles() {
     return [
       styles,
       css`
-      #welcomeBar {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-      }
-
-      #welcomeCard,
-      #infoCard {
-        padding: 18px;
-        padding-top: 0px;
-      }
-
-      sl-card::part(footer) {
-        display: flex;
-        justify-content: flex-end;
-      }
-
-      @media(min-width: 750px) {
-        sl-card {
-          width: 70vw;
-        }
-      }
-
-
-      @media (horizontal-viewport-segments: 2) {
         #welcomeBar {
-          flex-direction: row;
-          align-items: flex-start;
-          justify-content: space-between;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-direction: column;
         }
 
         #welcomeCard {
-          margin-right: 64px;
+          padding: 18px;
+          padding-top: 0px;
         }
-      }
-    `];
+
+        #gameContainer {
+          display: grid;
+          grid-template-columns: repeat(4, 80px);
+          grid-template-rows: repeat(4, 80px);
+          gap: 16px;
+          padding: 16px;
+          max-width: 370px;
+          margin: auto;
+          background-color: #333;
+          border-radius: 8px;
+        }
+
+        .tile {
+          width: 80px;
+          height: 80px;
+          background-color: #555;
+          font-size: 24px;
+          font-weight: bold;
+          text-align: center;
+          border-radius: 8px;
+        }
+
+        .slide-in {
+          transform: translate(0, 0);
+        }
+
+
+        @media (min-width: 750px) {
+          sl-card {
+            width: 70vw;
+          }
+        }
+      `,
+    ];
   }
 
   constructor() {
     super();
+    this.initializeBoard();
+    this.addKeyboardListeners();
   }
 
-  async firstUpdated() {
-    // this method is a lifecycle even in lit
-    // for more info check out the lit docs https://lit.dev/docs/components/lifecycle/
-    console.log('This is your home page');
+  resetGame() {
+    this.board = Array.from({ length: 4 }, () => Array(4).fill(0));
+    this.initializeBoard();
+    this.requestUpdate();
   }
 
-  share() {
-    if ((navigator as any).share) {
-      (navigator as any).share({
-        title: 'PWABuilder pwa-starter',
-        text: 'Check out the PWABuilder pwa-starter!',
-        url: 'https://github.com/pwa-builder/pwa-starter',
-      });
+  connectedCallback() {
+    super.connectedCallback();
+    this.requestUpdate();
+  }
+
+  initializeBoard() {
+    this.addRandomTile();
+    this.addRandomTile();
+  }
+
+  addRandomTile() {
+    const emptyCells = [];
+    for (let i = 0; i < this.board.length; i++) {
+      for (let j = 0; j < this.board[i].length; j++) {
+        if (this.board[i][j] === 0) {
+          emptyCells.push({ row: i, col: j });
+        }
+      }
+    }
+    if (emptyCells.length > 0) {
+      const { row, col } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      this.board[row][col] = Math.random() < 0.9 ? 2 : 4;
+    }
+  }
+
+  renderTile(value: number, row: number, col: number) {
+    return html`<div class="tile" style="${this.getTileStyle(row, col)}">${value !== 0 ? value : ''}</div>`;
+  }
+
+  getTileStyle(row: number, col: number) {
+    const rowIndex = this.board.length - 1 - row;
+    const colIndex = col;
+    const transform = `translate(${colIndex * 100}%, ${rowIndex * 100}%)`;
+    return `${transform};`;
+  }
+
+  addKeyboardListeners() {
+    window.addEventListener('keydown', (event) => {
+      switch (event.key) {
+        case 'ArrowUp':
+          this.moveTiles('up');
+          break;
+        case 'ArrowDown':
+          this.moveTiles('down');
+          break;
+        case 'ArrowLeft':
+          this.moveTiles('left');
+          break;
+        case 'ArrowRight':
+          this.moveTiles('right');
+          break;
+      }
+    });
+  }
+
+  moveRowOrColumn(rowOrColumn: number[], direction: 'up' | 'down' | 'left' | 'right') {
+    const nonZeroValues: number[] = rowOrColumn.filter(value => value !== 0);
+    const resultRowOrColumn: number[] = [];
+
+    for (let i = 0; i < nonZeroValues.length; i++) {
+      if (i < nonZeroValues.length - 1 && nonZeroValues[i] === nonZeroValues[i + 1]) {
+        resultRowOrColumn.push(nonZeroValues[i] * 2);
+        i++;
+      } else {
+        resultRowOrColumn.push(nonZeroValues[i]);
+      }
+    }
+    const zerosCount = rowOrColumn.length - resultRowOrColumn.length;
+    const zerosArray = Array(zerosCount).fill(0);
+    if (direction === 'up' || direction === 'left') {
+      return resultRowOrColumn.concat(zerosArray);
+    } else {
+      return direction === 'right' ? zerosArray.concat(resultRowOrColumn.reverse()) : zerosArray.concat(resultRowOrColumn);
+    }
+  }
+
+  moveTiles(direction: 'up' | 'down' | 'left' | 'right') {
+    const updateBoard = () => {
+      this.requestUpdate();
+      this.addRandomTile();
+      setTimeout(() => this.requestUpdate(), 200);
+    };
+
+    const newBoard = this.board.map(row => [...row]);
+    let moved = false;
+
+    for (let i = 0; i < this.board.length; i++) {
+      const rowOrColumn = direction === 'up' || direction === 'down'
+        ? this.board.map(row => row[i])
+        : direction === 'left'
+          ? this.board[i]
+          : this.board[i].slice().reverse();
+
+      const movedRowOrColumn = this.moveRowOrColumn(rowOrColumn, direction);
+      const finalRowOrColumn = direction === 'right' ? movedRowOrColumn.reverse() : movedRowOrColumn;
+
+      if (!rowOrColumn.every((value, index) => value === finalRowOrColumn[index])) {
+        if (direction === 'up' || direction === 'down') {
+          newBoard.forEach((row, rowIndex) => row[i] = finalRowOrColumn[rowIndex]);
+        } else {
+          newBoard[i] = direction === 'left' ? finalRowOrColumn : finalRowOrColumn.reverse();
+        }
+        moved = true;
+      }
+    }
+    if (moved) {
+      this.board = newBoard;
+      setTimeout(updateBoard, 0);
     }
   }
 
@@ -87,42 +193,17 @@ export class AppHome extends LitElement {
             <div slot="header">
               <h2>${this.message}</h2>
             </div>
-
+            <sl-button href="${resolveRouterPath('about')}" variant="primary">Contact me</sl-button>
             <p>
-              Hello, I'm Nick Surgent and this is my PWA Starter. This starter is built with
-              PWABuilder's pwa-starter, if you are interested in trying it out, here is the
-              <a href="https://docs.pwabuilder.com/#/starter/quick-start"> link</a>.
+              Combine identical tiles to reach 2048 and win the game. Use the arrow keys to move the tiles.
             </p>
-
-            <p id="mainInfo">
-              If you are interested in making your own PWA and
-              testing it out, check out their website at
-              <a href="https://pwabuilder.com">PWABuilder</a>.
-            </p>
-
-            ${'share' in navigator
-              ? html`<sl-button slot="footer" variant="primary" @click="${this.share}">Share this Starter!</sl-button>`
-              : null}
+            <button @click="${this.resetGame}">Reset Game</button>
           </sl-card>
-
-          <sl-card id="infoCard">
-            <h2>About Me</h2>
-
-            <p>
-            I am a Senior at Point Park University studying Applied Computer Science with
-            a focus in software design and development.  I have experience with Javascript,
-            PHP, SQL, HTML, and CSS.
-            </p>
-
-            <p>
-            I have previously worked on projects in web development and game development.
-            Currently I am working on learning more about mobile development and my current
-            project is creating this PWA.
-            </p>
-
-          </sl-card>
-
-          <sl-button href="${resolveRouterPath('about')}" variant="primary">Contact Information</sl-button>
+        </div>
+        <div id="gameContainer">
+          ${this.board
+            .flat()
+            .map((value, index) => this.renderTile(value, Math.floor(index / 4), index % 4))}
         </div>
       </main>
     `;

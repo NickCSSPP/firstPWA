@@ -31,8 +31,8 @@ export class AppAbout extends LitElement {
           <h2>Contact Information</h2>
           <ul>
             <li>Email: nssurge@pointpark.edu</li>
-            <li>Phone: Phone number on request, please send email contact first.</li>
           </ul>
+          <p> Email me if you run into any issues with the app or if you have any questions. </p>
         </sl-card>
   </main>
     `;
