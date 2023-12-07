@@ -7,6 +7,8 @@ import { styles } from '../styles/shared-styles';
 export class AppHome extends LitElement {
   @property() message = '2048 game remake by Nick Surgent';
   @property({ type: Array }) board: number[][] = Array.from({ length: 4 }, () => Array(4).fill(0));
+  private touchStartX: number | null = null;
+  private touchStartY: number | null = null;
 
   static get styles() {
     return [
@@ -74,7 +76,45 @@ export class AppHome extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.addSwipeListeners();
     this.requestUpdate();
+  }
+
+  addSwipeListeners() {
+    const handleTouchStart = (event: TouchEvent) => {
+      this.touchStartX = event.touches[0].clientX;
+      this.touchStartY = event.touches[0].clientY;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!this.touchStartX || !this.touchStartY) return;
+
+      const touchEndX = event.touches[0].clientX;
+      const touchEndY = event.touches[0].clientY;
+
+      const deltaX = touchEndX - this.touchStartX;
+      const deltaY = touchEndY - this.touchStartY;
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 0) {
+          this.moveTiles('right');
+        } else {
+          this.moveTiles('left');
+        }
+      } else {
+        if (deltaY > 0) {
+          this.moveTiles('down');
+        } else {
+          this.moveTiles('up');
+        }
+      }
+
+      this.touchStartX = null;
+      this.touchStartY = null;
+    };
+
+    this.addEventListener('touchstart', handleTouchStart);
+    this.addEventListener('touchmove', handleTouchMove);
   }
 
   initializeBoard() {
