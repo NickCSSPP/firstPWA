@@ -1,7 +1,7 @@
 {
-  "name": "pwa-starter",
+  "name": "2048",
   "version": "0.0.1",
-  "description": "A starter kit for building PWAs!",
+  "description": "2048 game built with PWA starter kit",
   "main": "index.js",
   "scripts": {
     "dev-server": "vite --open",
