@@ -1,10 +1,10 @@
 {
   "id": "/",
   "scope": "/",
-  "name": "PWA Starter",
+  "name": "2048 Game",
   "display": "standalone",
   "start_url": "/",
-  "short_name": "starter",
+  "short_name": "2048",
   "theme_color": "#E1477E",
   "description": "This is a PWA Starter app",
   "orientation": "any",
